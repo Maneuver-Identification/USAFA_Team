@@ -1,0 +1,46 @@
+import bpy,sys
+from pathlib import Path
+from math import radians
+args = [""]
+args[0] = "/Users/matthewlarosa/Documents/code/ManueverID/Data/modifiedData/ObservedTrajectoryData/good_animation_tsv/12001477006seg1-1686.min.tsv"
+
+#clears plane animation
+plane = bpy.data.objects["Plane"]
+plane.animation_data_clear()
+
+#Open Flight Path
+tsv  = open(args[0], "r")
+
+#Reads first line of file
+A = tsv.readline()
+B = [float(x) for x in A.split('\t') if x.strip()]
+
+#tracks the frame and time segments added
+frame_num = 1
+prev_time = 0
+
+#sets the inital location of the plane and camera, and sets a keyframe for both
+plane.location = (0,0,0)
+plane.rotation_euler = (radians(B[10]+90), radians(-B[9]), radians(-B[8] + 90))
+plane.location  = (B[2], B[3], B[4])
+plane.keyframe_insert(data_path = "location", frame = frame_num)
+plane.keyframe_insert(data_path = "rotation_euler", frame = frame_num)
+
+for line in tsv:
+    B = [float(x) for x in line.split('\t') if x.strip()]
+    if not int(B[1]) == prev_time:
+        #Update time
+        frame_num = int(B[1]) * 24
+        prev_time = int(B[1])
+        
+        #Move to origin, apply rotation, and move to desired point
+        plane.location = (0,0,0)
+        plane.rotation_euler = (radians((B[10] + 90)), radians((-B[9])), radians((-B[8] + 90)))
+        plane.location  = (B[2], B[3], B[4])
+        plane.keyframe_insert(data_path = "location", frame = frame_num)
+        plane.keyframe_insert(data_path = "rotation_euler", frame = frame_num)
+        
+tsv.close()
+
+bpy.context.scene.frame_end = frame_num
+bpy.ops.object.paths_calculate(start_frame=1, end_frame=frame_num)
