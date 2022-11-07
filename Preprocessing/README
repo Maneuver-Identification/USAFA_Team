@@ -1,0 +1,39 @@
+# ManeuverID Data Preprocessing
+
+This document provides brief instructions on how our team augmented and sterilized the ManeuverID data.
+
+## Identify Mislabeled and Extraneous Sorties
+
+Before any analysis is performed, a quick python script to was ran on the orginal data to ensure all files were properly configured. This was done by ensuring all sorties have a image, and that image is labeled the same as the sortie is labeled. The code to perform this identification is provided in mislabeled.py. This script takes one command line argument: 1) directory to the observedTrajectoryFolder. The results of this analysis is provided in mislabeledSorties.txt.
+
+## Manual Augments
+
+The first step to augment the original data was to aggregate the good and bad sorties to a common directory, as having split folders does not provide useful information and makes additional coding more difficult. In addition, the image files are also excluded. The resulting file structure follows:
+
+ModifiedData/
+├─ good_tsv/
+│  ├─ goodSortie1.tsv
+│  ├─ goodSortie2.tsv
+│  ├─ ...
+├─ bad_tsv/
+│  ├─ badSortie1.tsv
+│  ├─ badSortie1.tsv
+│  ├─ ...
+
+After this, the sorties identified in mislabeledSorties.txt as mislabeled were manually removed from the folders.
+
+## Identifying Bad Data within Good Sorties
+
+After reviewing the data, it is apparent some of the data within a sortied labeled good may not actually contain all good data. There are three main issues identified with the data which is aimed to be solved here. First, some data includes teleported flight path characterized by impossible speeds. Second, some sorties stopped mid-flight, indicating the flight was paused. Third, the appearance of taxiing sequences on the ground create issues where the plane is not moving for prolonged times.
+
+The code to identify these segments of data is provided in verifyData.py. This script takes two command line arguments: 1) path to directory containing data and 2) path to output directory. Generally, sections of code which produce speeds above or below a threshold value were identified as bad sections of code within the good sorties.
+
+While testing this code, an additional ten sorties were identified which contained incomplete data. Four sorties, numbered 12001478001, 13001440006, 13000523005, and 13000523004, were missing one of the data columns for some or all of the time steps. These four sorties were removed from the data pool. The fifth sortie, 13000013001, had indentation issues. The last five sorties (13001429001, 13001255001, 13001381001, 13001209001, and 13000603005)  had miscellaneous rows with missing velocity data. These sorties were retained and fixed manually.
+
+All retained sorties were checked to ensure all data points had velocities over 5 m/s in at least one direction. This helped identify stopped and taxiing data segments. Since velocity was obtained from the simulator, it was not able to catch teleported data. Instead, the error from the velocity and previous position was used to calculate if the segment of the sortie deviated significantly from the expected flight path. If any position deviated by more than 100m, the plane was determined to have teleported.
+
+The original maneuverID paper established a cutoff value of 1000 data point minimum for any sortie. This threshold was followed here as well. If the good segments within the sortie was not long enough to meet this 1000 point minimum, the segmented data was removed. A list of the valid time segments are included in validSortieSegments.txt.
+
+## Conclusion
+
+At this point, the data is ready for processing. Mislabeled sorties have been removed. In addition, bad segments of data were removed from sorties labeled good. Finally, any sorties with extenuating circumstances have been rectified as appropriate. To note, only the observed sorties were analyzed.
